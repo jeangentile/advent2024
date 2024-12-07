@@ -9,25 +9,24 @@ class Program
 
     static int gridWidth = 0;
     static int gridLength = 0;
-    static string[] gridLines;
     static List<string> allLines = new List<string>();
     static void Main(string[] args)
     {
         Console.WriteLine("Hello, Day 04!");
  
         var gridContent = File.ReadAllText("c:\\dev\\advent2024\\advent2024\\day04\\input.txt");
-        gridLines = gridContent.Split(Environment.NewLine);
+        var gridLines = gridContent.Split(Environment.NewLine);
         gridWidth = gridLines[0].Length;
         gridLength = gridLines.Length;
 
         Console.WriteLine($"Grid Width: {gridWidth}");
         Console.WriteLine($"Grid Length: {gridLength}");
 
-        Part2();
+        Part2(gridLines);
     }
 
 
-    static void Part2()
+    static void Part2(string[] gridLines)
     {
         var matchCounter = 0;
         for(var row = 0; row < gridLength - 2; row++)
@@ -88,7 +87,7 @@ class Program
         Console.WriteLine($"Matches {matchCounter}");
     }
 
-    static void Part1()
+    static void Part1(string[] gridLines)
     {
         //lines
         for(var yPos = 0; yPos < gridLength; yPos++)
