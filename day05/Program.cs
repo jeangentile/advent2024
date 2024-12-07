@@ -5,138 +5,100 @@ using Microsoft.VisualBasic;
 
 Console.WriteLine("Hello, World!");
 
-var rulestxt = File.ReadAllText("c:\\dev\\advent2024\\advent2024\\day05\\rules.txt");
-var input = File.ReadAllText("c:\\dev\\advent2024\\advent2024\\day05\\input.txt");
-
-var rules = new Dictionary<int, RuleMap>();
-foreach(var ruleLine in rulestxt.Split(Environment.NewLine))
-{
-    var ruleLineSplit = ruleLine.Split("|");
-
-    var pageLeft = int.Parse(ruleLineSplit[0]);
-    var pageRight = int.Parse(ruleLineSplit[1]);
-
-    if (!rules.TryGetValue(pageLeft, out var ruleMapLeft))
-    {
-        ruleMapLeft = new RuleMap(pageLeft);
-        rules.Add(pageLeft, ruleMapLeft);
-    }
-    ruleMapLeft.PagesAfter.Add(pageRight);
-    rules[pageLeft] = ruleMapLeft;
-
-    if (!rules.TryGetValue(pageRight, out var ruleMapRight))
-    {
-        ruleMapRight = new RuleMap(pageRight);
-        rules.Add(pageRight, ruleMapRight);
-    }
-    ruleMapRight.PagesBefore.Add(pageLeft);
-    rules[pageRight] = ruleMapRight;
-
-}
+var j = new AoC2024Day5Part2();
+var result = await j.SolveAsync(new StreamReader("c:\\dev\\advent2024\\advent2024\\day05\\input-full.txt"));
+Console.WriteLine(result);
 
 var middlePages = 0;
 
-foreach(var inputLine in input.Split(Environment.NewLine))
+public partial class AoC2024Day5Part2
 {
-    var lineIsValid = EvaluateLine(inputLine);
-    var inputLineSplit = inputLine.Split(",");
+    private readonly List<(int pageLeft, int pageRight)> _rules = new();
+    private PageComparer _pageComparer = null!;
 
-    if (lineIsValid)
+    public async Task<string> SolveAsync(StreamReader inputReader)
     {
-        var middlePage = int.Parse(inputLineSplit[inputLineSplit.Length /2]);
-        middlePages += middlePage;
-        Console.WriteLine();
-    }
-    else
-    {
-        Console.WriteLine();
-        Console.WriteLine($"##Fixing broken row {inputLine}");
-        var newLine = new List<int>();
-
-        for(var splitPosition = 0; splitPosition < inputLineSplit.Length; splitPosition++)
+        // Reading rules
+        while (await inputReader.ReadLineAsync() is { } line)
         {
-            var page = int.Parse(inputLineSplit[splitPosition]);
-            Console.WriteLine($"  >Page: {page} ");
-            if (!rules.TryGetValue(page, out var pageRules))
+            if (string.IsNullOrWhiteSpace(line))
             {
-                newLine.Add(page);
+                break;
             }
-            else
+
+            var parts = line.Split("|");
+            var left = int.Parse(parts[0]);
+            var right = int.Parse(parts[1]);
+            _rules.Add((left, right));
+        }
+
+        _pageComparer = new PageComparer(_rules.ToArray());
+
+        int total = 0;
+        // Read updates
+        while (await inputReader.ReadLineAsync() is { } line)
+        {
+            var update = line.Split(",").Select(int.Parse).ToArray();
+            if (!IsUpdateValid(update))
             {
-                
+                FixUpdate(update);
+                total += update[update.Length / 2];
             }
         }
+
+        return total.ToString();
     }
 
-}
-
-bool EvaluateLine(string inputLine)
-{
-    Console.WriteLine($"Evaluating {inputLine}");
-    
-    var inputLineSplit = inputLine.Split(",");
-
-
-    for(var splitPosition = 0; splitPosition < inputLineSplit.Length; splitPosition++)
+    private bool IsUpdateValid(int[] update)
     {
-        var page = int.Parse(inputLineSplit[splitPosition]);
-        Console.WriteLine($"  >Page: {page} ");
-        
-        //find matching rules for this page        
-        if (rules.TryGetValue(page, out var pageRules))
+        for (int i = 0; i < update.Length; i++)
         {
-            //check all pages after this page
-            for(var positionAfter = splitPosition + 1; positionAfter < inputLineSplit.Length; positionAfter++)
+            var currentNumber = update[i];
+            foreach (var rule in _rules)
             {
-                var pageAfter = int.Parse(inputLineSplit[positionAfter]);
-                Console.Write($"         Page After {pageAfter} ");
-
-                var canBeAfter = pageRules.PagesAfter.Contains(pageAfter);
-                Console.Write($"{canBeAfter} ");
-
-                if (!canBeAfter)
+                var (left, right) = rule;
+                var leftIndex = Array.IndexOf(update, left);
+                var rightIndex = Array.IndexOf(update, right);
+                if (currentNumber == left && rightIndex != -1 && rightIndex < i)
                 {
                     return false;
                 }
-
-                Console.WriteLine();
-            }
-
-            //check all pages before this page
-            for(var positionBefore = splitPosition - 1; positionBefore > -1; positionBefore--)
-            {
-                var pageBefore = int.Parse(inputLineSplit[positionBefore]);
-                Console.Write($"         Page Before {pageBefore} ");
-
-                var canBeBefore = pageRules.PagesBefore.Contains(pageBefore);
-                Console.Write($"{canBeBefore} ");
-
-                if (!canBeBefore)
+                else if (currentNumber == right && leftIndex != -1 && Array.IndexOf(update, left) > i)
                 {
                     return false;
                 }
+            }
+        }
 
-                Console.WriteLine();
+        return true;
+    }
+
+    private void FixUpdate(int[] update)
+    {
+        Array.Sort(update, new PageComparer(_rules.ToArray()));
+    }
+
+    public class PageComparer : IComparer<int>
+    {
+        private readonly HashSet<(int left, int right)> _rules;
+
+        public PageComparer((int left, int right)[] rules)
+        {
+            _rules = new HashSet<(int left, int right)>(rules);
+        }
+
+        public int Compare(int x, int y)
+        {
+            if (_rules.Contains((x, y)))
+            {
+                return -1;
+            }
+            else if (_rules.Contains((y, x)))
+            {
+                return 1;
             }
 
+            return 0;
         }
-    }
-    Console.WriteLine();
-
-    return true;
-}
-
-
-Console.WriteLine($"Valid Middle Pages: {middlePages}");
-
-public class RuleMap
-{
-    public int Page;
-    public List<int> PagesBefore = new List<int>();
-    public List<int> PagesAfter = new List<int>();
-
-    public RuleMap(int page)
-    {
-        Page = page;
     }
 }
