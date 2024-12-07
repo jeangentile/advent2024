@@ -8,7 +8,7 @@
             "name": "C#: day04 Debug",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/day04/day04.csproj"
+            "projectPath": "${workspaceFolder}/day05/day05.csproj"
         }
 
     ]
